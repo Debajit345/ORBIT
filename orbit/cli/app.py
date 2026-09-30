@@ -1,7 +1,6 @@
 """ORBIT terminal application."""
 
 from textual.app import App, ComposeResult
-from textual.binding import Binding
 from textual.widgets import Footer, Header
 
 from ..commands.builtin import register_builtin_commands
@@ -23,12 +22,6 @@ class OrbitApp(App):
 
     BINDINGS = [
         ("ctrl+c", "quit", "Quit"),
-        Binding(
-            "ctrl+p",
-            "toggle_command_palette",
-            "Commands",
-            priority=True,
-        ),
     ]
 
     def __init__(self, **kwargs) -> None:
@@ -53,9 +46,9 @@ class OrbitApp(App):
         yield Header()
 
         yield SessionScreen(
-            state=self.state,
-            commands=self.command_registry.all(),
-            id="session",
+        state=self.state,
+        command_registry=self.command_registry,
+        id="session",
         )
 
         yield Footer()
@@ -151,16 +144,6 @@ class OrbitApp(App):
             session,
             command,
         )
-
-    def action_toggle_command_palette(self) -> None:
-        """Toggle the command palette from the keyboard."""
-
-        palette = self.query_one(
-            "#command-palette",
-            CommandPalette,
-        )
-
-        palette.toggle()
 
     def handle_request(
         self,
