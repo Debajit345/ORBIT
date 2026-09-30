@@ -2,15 +2,16 @@
 
 
 THEME = {
-    "background": "#0b0d10",
-    "surface": "#101419",
-    "surface_alt": "#12161b",
-    "border": "#39434e",
-    "border_focus": "#6aaed6",
-    "text": "#d7dde5",
-    "text_muted": "#697581",
-    "text_subtle": "#59636f",
-    "primary": "#8bd5ff",
+    "background": "#0b0b0b",
+    "surface": "#111111",
+    "surface_alt": "#171717",
+    "border": "#2a2a2a",
+    "border_focus": "#d97732",
+    "text": "#e6e6e6",
+    "text_muted": "#858585",
+    "text_subtle": "#626262",
+    "primary": "#d97732",
+    "primary_bright": "#ff9f43",
     "accent": "#c792ea",
     "success": "#7ee787",
     "warning": "#e3b341",
@@ -19,7 +20,7 @@ THEME = {
 
 
 def get_color(name: str) -> str:
-    """Return a theme color, falling back to the primary color."""
+    """Return a theme color."""
 
     return THEME.get(
         name,
@@ -35,7 +36,7 @@ Screen {{
 
 Header {{
     background: {THEME["surface"]};
-    color: {THEME["primary"]};
+    color: {THEME["primary_bright"]};
     height: 3;
 }}
 
@@ -56,6 +57,7 @@ Footer {{
 
 #activity {{
     height: auto;
+    padding: 0 1;
 }}
 
 #command-palette {{

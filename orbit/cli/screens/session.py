@@ -1,8 +1,11 @@
 """Main ORBIT research session screen."""
 
+from collections.abc import Sequence
+
 from textual.app import ComposeResult
 from textual.containers import Vertical
 
+from ...commands.registry import Command
 from ..state import OrbitState
 from ..widgets.activity import Activity
 from ..widgets.command_palette import CommandPalette
@@ -17,11 +20,13 @@ class SessionScreen(Vertical):
     def __init__(
         self,
         state: OrbitState | None = None,
+        commands: Sequence[Command] = (),
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
         self.state = state or OrbitState()
+        self.commands = commands
 
     def compose(self) -> ComposeResult:
         """Compose the ORBIT session interface."""
@@ -30,7 +35,10 @@ class SessionScreen(Vertical):
 
         yield Activity(id="activity")
 
-        yield CommandPalette(id="command-palette")
+        yield CommandPalette(
+            self.commands,
+            id="command-palette",
+        )
 
         yield Prompt(id="prompt")
 
@@ -44,7 +52,9 @@ class SessionScreen(Vertical):
             StatusBar,
         )
 
-        status_bar.update_from_state(self.state)
+        status_bar.update_from_state(
+            self.state
+        )
 
         prompt = self.query_one(
             "#prompt",
@@ -53,7 +63,10 @@ class SessionScreen(Vertical):
 
         prompt.focus_input()
 
-    def add_user_message(self, content: str) -> None:
+    def add_user_message(
+        self,
+        content: str,
+    ) -> None:
         """Add a user message to the transcript."""
 
         transcript = self.query_one(
@@ -61,14 +74,19 @@ class SessionScreen(Vertical):
             Transcript,
         )
 
-        transcript.add_user_message(content)
+        transcript.add_user_message(
+            content
+        )
 
         self.state.add_message(
             "user",
             content,
         )
 
-    def add_orbit_message(self, content: str) -> None:
+    def add_orbit_message(
+        self,
+        content: str,
+    ) -> None:
         """Add an ORBIT response."""
 
         transcript = self.query_one(
@@ -76,7 +94,9 @@ class SessionScreen(Vertical):
             Transcript,
         )
 
-        transcript.add_orbit_message(content)
+        transcript.add_orbit_message(
+            content
+        )
 
         self.state.add_message(
             "orbit",
@@ -105,6 +125,16 @@ class SessionScreen(Vertical):
             level,
         )
 
+    def clear_active_activity(self) -> None:
+        """Remove currently active activities."""
+
+        activity = self.query_one(
+            "#activity",
+            Activity,
+        )
+
+        activity.clear_active()
+
     def clear_session(self) -> None:
         """Clear the current session."""
 
@@ -119,6 +149,7 @@ class SessionScreen(Vertical):
         )
 
         transcript.clear()
+
         activity.clear()
 
         self.state.clear_session()

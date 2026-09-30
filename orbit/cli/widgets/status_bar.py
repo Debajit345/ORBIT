@@ -12,15 +12,15 @@ class StatusBar(Static):
     StatusBar {
         height: 2;
         padding: 0 1;
-        color: #697581;
+        color: #626262;
     }
 
     StatusBar.status-ready {
-        color: #697581;
+        color: #626262;
     }
 
     StatusBar.status-working {
-        color: #8bd5ff;
+        color: #d97732;
     }
 
     StatusBar.status-error {
@@ -28,10 +28,15 @@ class StatusBar(Static):
     }
     """
 
-    def update_from_state(self, state: OrbitState) -> None:
+    def update_from_state(
+        self,
+        state: OrbitState,
+    ) -> None:
         """Update the status bar from ORBIT runtime state."""
 
-        self.update(state.status_text)
+        self.update(
+            state.status_text
+        )
 
         self.remove_class(
             "status-ready",
@@ -40,6 +45,10 @@ class StatusBar(Static):
         )
 
         if state.ready:
-            self.add_class("status-ready")
+            self.add_class(
+                "status-ready"
+            )
         else:
-            self.add_class("status-working")
+            self.add_class(
+                "status-working"
+            )

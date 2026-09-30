@@ -3,10 +3,12 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
+from ..commands.builtin import register_builtin_commands
+from ..commands.registry import CommandRegistry
 from .screens.session import SessionScreen
 from .state import OrbitState
 from .theme import CSS
-from .widgets.command_palette import CommandPalette
+from .widgets.command_palette import CommandItem, CommandPalette
 from .widgets.prompt import Prompt
 
 
@@ -26,6 +28,17 @@ class OrbitApp(App):
         super().__init__(**kwargs)
 
         self.state = OrbitState()
+        self.command_registry = CommandRegistry()
+
+        register_builtin_commands(
+            self.command_registry,
+            help_handler=self.show_command_help,
+            commands_handler=self.show_command_palette,
+            status_handler=self.show_status,
+            doctor_handler=self.show_doctor,
+            clear_handler=self.clear_session,
+            exit_handler=self.exit_orbit,
+        )
 
     def compose(self) -> ComposeResult:
         """Compose the ORBIT application."""
@@ -34,6 +47,7 @@ class OrbitApp(App):
 
         yield SessionScreen(
             state=self.state,
+            commands=self.command_registry.all(),
             id="session",
         )
 
@@ -68,28 +82,10 @@ class OrbitApp(App):
 
         session.add_user_message(command)
 
-        if command == "/help":
-            self.show_command_help(session)
-
-        elif command == "/commands":
-            self.show_command_palette(session)
-
-        elif command == "/status":
-            self.show_status(session)
-
-        elif command == "/doctor":
-            self.show_doctor(session)
-
-        elif command == "/clear":
-            session.clear_session()
-
-        elif command in {"/exit", "/quit"}:
-            self.exit()
-
-        elif command.startswith("/"):
-            session.add_orbit_message(
-                f"Unknown command: {command}\n"
-                "Type /help to see available commands."
+        if command.startswith("/"):
+            self.handle_command(
+                session,
+                command,
             )
 
         else:
@@ -97,6 +93,57 @@ class OrbitApp(App):
                 session,
                 command,
             )
+
+    def handle_command(
+        self,
+        session: SessionScreen,
+        command_text: str,
+    ) -> None:
+        """Resolve and execute an ORBIT slash command."""
+
+        command_name = command_text.split(maxsplit=1)[0].lower()
+
+        command = self.command_registry.get(
+            command_name,
+        )
+
+        if command is None:
+            session.add_orbit_message(
+                f"Unknown command: {command_name}\n"
+                "Type /help to see available commands."
+            )
+            return
+
+        command.handler(session)
+
+    def on_command_item_selected(
+        self,
+        message: CommandItem.Selected,
+    ) -> None:
+        """Execute a command selected from the command palette."""
+
+        session = self.query_one(
+            "#session",
+            SessionScreen,
+        )
+
+        command = message.command
+
+        palette = session.query_one(
+            "#command-palette",
+            CommandPalette,
+        )
+
+        palette.hide()
+
+        session.add_user_message(
+            command
+        )
+
+        self.handle_command(
+            session,
+            command,
+        )
 
     def handle_request(
         self,
@@ -115,20 +162,30 @@ class OrbitApp(App):
             "The research agent is not connected yet."
         )
 
+        self.call_after_refresh(
+            session.clear_active_activity
+        )
+
     def show_command_help(
         self,
         session: SessionScreen,
     ) -> None:
         """Display ORBIT slash commands."""
 
+        commands = self.command_registry.all()
+
+        lines = [
+            "ORBIT Commands",
+            "",
+        ]
+
+        for command in commands:
+            lines.append(
+                f"{command.name:<14} {command.description}"
+            )
+
         session.add_orbit_message(
-            "ORBIT Commands\n\n"
-            "/help          Show commands\n"
-            "/commands      Open command palette\n"
-            "/status        Show system status\n"
-            "/doctor        Run diagnostics\n"
-            "/clear         Clear session\n"
-            "/exit          Exit ORBIT"
+            "\n".join(lines)
         )
 
     def show_command_palette(
@@ -174,6 +231,22 @@ class OrbitApp(App):
             "Database       READY\n"
             "AI provider    NOT CONFIGURED"
         )
+
+    def clear_session(
+        self,
+        session: SessionScreen,
+    ) -> None:
+        """Clear the current ORBIT session."""
+
+        session.clear_session()
+
+    def exit_orbit(
+        self,
+        session: SessionScreen,
+    ) -> None:
+        """Exit ORBIT."""
+
+        self.exit()
 
 
 def main() -> int:
