@@ -4,6 +4,8 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Static
 
+from ..renderers.markdown import render_markdown
+
 
 class Transcript(Vertical):
     """Scrollable conversation transcript."""
@@ -131,7 +133,7 @@ class Transcript(Vertical):
                     classes="message-label",
                 ),
                 Static(
-                    content,
+                    render_markdown(content),
                     classes="message-body",
                 ),
                 classes="message message-orbit",
@@ -139,6 +141,19 @@ class Transcript(Vertical):
         )
 
         self.scroll_end()
+
+    def add_orbit_stream(self, content: str) -> Static:
+        """Mount an ORBIT response body that can update incrementally."""
+
+        body = Static(render_markdown(content), classes="message-body")
+        message = Vertical(
+            Static("ORBIT", classes="message-label"),
+            body,
+            classes="message message-orbit",
+        )
+        self.mount(message)
+        self.scroll_end()
+        return body
 
     def add_system_message(
         self,

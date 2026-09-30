@@ -10,6 +10,7 @@ def register_builtin_commands(
     *,
     help_handler: Callable,
     commands_handler: Callable,
+    sources_handler: Callable,
     status_handler: Callable,
     doctor_handler: Callable,
     clear_handler: Callable,
@@ -27,6 +28,12 @@ def register_builtin_commands(
         "/commands",
         "Open the command palette",
         commands_handler,
+    )
+
+    registry.register(
+        "/sources",
+        "Show configured research sources",
+        sources_handler,
     )
 
     registry.register(

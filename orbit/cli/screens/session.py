@@ -7,6 +7,7 @@ from ...commands.registry import CommandRegistry
 from ..state import OrbitState
 from ..widgets.activity import Activity
 from ..widgets.command_palette import CommandPalette
+from ..widgets.mascot import Mascot
 from ..widgets.prompt import Prompt
 from ..widgets.status_bar import StatusBar
 from ..widgets.transcript import Transcript
@@ -29,6 +30,7 @@ class SessionScreen(Vertical):
     def compose(self) -> ComposeResult:
         yield Transcript(id="transcript")
         yield Activity(id="activity")
+        yield Mascot(id="mascot")
 
         if self.command_registry is not None:
             yield CommandPalette(

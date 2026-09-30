@@ -1,4 +1,29 @@
 services:
+  orbit:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://orbit:orbit_password@postgres:5432/orbit
+      ORBIT_AUTH_SECRET: ${ORBIT_AUTH_SECRET:-}
+    ports:
+      - "8000:8000"
+
+  ingestion-worker:
+    build:
+      context: .
+    profiles: [workers]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://orbit:orbit_password@postgres:5432/orbit
+    command: ["python", "-m", "app.ingestion.run"]
+
   postgres:
     image: postgres:17
     container_name: orbit-postgres
@@ -21,5 +46,27 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    profiles: [cache]
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - orbit_redis_data:/data
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: [ai]
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - orbit_ollama_data:/root/.ollama
+
 volumes:
   orbit_postgres_data:
+
+  orbit_redis_data:
+
+  orbit_ollama_data:

@@ -27,10 +27,7 @@ class CommandRegistry:
     ) -> None:
         """Register a command."""
 
-        normalized_name = name.strip().lower()
-
-        if not normalized_name.startswith("/"):
-            normalized_name = f"/{normalized_name}"
+        normalized_name = self._normalize_name(name)
 
         self._commands[normalized_name] = Command(
             name=normalized_name,
@@ -41,7 +38,7 @@ class CommandRegistry:
     def get(self, name: str) -> Command | None:
         """Return a command by name."""
 
-        normalized_name = name.strip().lower()
+        normalized_name = self._normalize_name(name)
 
         return self._commands.get(normalized_name)
 
@@ -54,3 +51,14 @@ class CommandRegistry:
         """Remove all registered commands."""
 
         self._commands.clear()
+
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        """Normalize a command name for registration and lookup."""
+
+        normalized_name = name.strip().lower()
+
+        if not normalized_name.startswith("/"):
+            normalized_name = f"/{normalized_name}"
+
+        return normalized_name

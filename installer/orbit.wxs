@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="ORBIT" Manufacturer="ORBIT" Version="0.1.0" UpgradeCode="7A37E2D7-06F7-4C26-8CE6-6EE7A1E0A001">
+    <MajorUpgrade DowngradeErrorMessage="A newer ORBIT version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+    <Feature Id="MainFeature" Title="ORBIT" Level="1">
+      <ComponentGroupRef Id="OrbitFiles" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="ORBIT" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="OrbitFiles" Directory="INSTALLFOLDER">
+      <Component Id="OrbitLauncher">
+        <File Source="installer\assets\orbit.cmd" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

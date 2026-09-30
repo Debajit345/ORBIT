@@ -60,6 +60,10 @@ Footer {{
     padding: 0 1;
 }}
 
+#mascot {{
+    height: 1;
+}}
+
 #command-palette {{
     height: auto;
 }}

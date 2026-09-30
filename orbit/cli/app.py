@@ -1,15 +1,24 @@
 """ORBIT terminal application."""
 
+import asyncio
+
 from textual.app import App, ComposeResult
 from textual.widgets import Footer, Header
 
+from ..agent import ResearchAgent
+from ..ai import EchoProvider, ProviderRouter
+from app.ingestion.sources import SOURCES
 from ..commands.builtin import register_builtin_commands
 from ..commands.registry import CommandRegistry
+from ..diagnostics import run_diagnostics
 from .screens.session import SessionScreen
+from .renderers.markdown import render_markdown
 from .state import OrbitState
 from .theme import CSS
 from .widgets.command_palette import CommandItem, CommandPalette
+from .widgets.mascot import Mascot, MascotState
 from .widgets.prompt import Prompt
+from .widgets.transcript import Transcript
 
 
 class OrbitApp(App):
@@ -29,11 +38,15 @@ class OrbitApp(App):
 
         self.state = OrbitState()
         self.command_registry = CommandRegistry()
+        self.agent = ResearchAgent(
+            ProviderRouter([EchoProvider()])
+        )
 
         register_builtin_commands(
             self.command_registry,
             help_handler=self.show_command_help,
             commands_handler=self.show_command_palette,
+            sources_handler=self.show_sources,
             status_handler=self.show_status,
             doctor_handler=self.show_doctor,
             clear_handler=self.clear_session,
@@ -46,9 +59,9 @@ class OrbitApp(App):
         yield Header()
 
         yield SessionScreen(
-        state=self.state,
-        command_registry=self.command_registry,
-        id="session",
+            state=self.state,
+            command_registry=self.command_registry,
+            id="session",
         )
 
         yield Footer()
@@ -150,21 +163,55 @@ class OrbitApp(App):
         session: SessionScreen,
         request: str,
     ) -> None:
-        """Handle a future natural-language ORBIT request."""
+        """Schedule a natural-language request for the research agent."""
+
+        self.run_worker(
+            self._run_request(session, request),
+            exclusive=True,
+            group="research",
+        )
+
+    async def _run_request(
+        self,
+        session: SessionScreen,
+        request: str,
+    ) -> None:
+        """Execute a request and stream its major stages into the session."""
 
         session.add_activity(
             "Processing request",
             "active",
         )
+        mascot = session.query_one("#mascot", Mascot)
+        mascot.set_state(MascotState.WORKING)
 
-        session.add_orbit_message(
-            "I received your request.\n\n"
-            "The research agent is not connected yet."
-        )
+        try:
+            transcript = session.query_one("#transcript", Transcript)
+            response_widget = transcript.add_orbit_stream("")
+            response_text = ""
 
-        self.call_after_refresh(
-            session.clear_active_activity
-        )
+            async for chunk in self.agent.stream(request):
+                response_text += chunk.text
+                response_widget.update(render_markdown(response_text))
+                await asyncio.sleep(0)
+
+            session.add_activity("Response streamed", "success")
+            self.state.add_message("orbit", response_text)
+            mascot.set_state(MascotState.SUCCESS)
+            self.call_after_refresh(mascot.set_state, MascotState.WAITING)
+        except Exception as error:
+            session.add_activity(
+                "Research request failed",
+                "error",
+            )
+            session.add_orbit_message(
+                f"Research request failed: {error}"
+            )
+            mascot.set_state(MascotState.WARNING)
+            self.call_after_refresh(mascot.set_state, MascotState.WAITING)
+        finally:
+            session.clear_active_activity()
+
 
     def show_command_help(
         self,
@@ -216,21 +263,44 @@ class OrbitApp(App):
             "AI provider    AUTO"
         )
 
+    def show_sources(
+        self,
+        session: SessionScreen,
+    ) -> None:
+        """Display configured source definitions and provenance endpoints."""
+
+        lines = ["Configured Sources", ""]
+
+        for source in SOURCES:
+            lines.extend(
+                (
+                    f"{source.name} ({source.source_type})",
+                    f"  Category: {source.category}",
+                    f"  Feed: {source.feed_url}",
+                    f"  Website: {source.website_url}",
+                    "",
+                )
+            )
+
+        if not SOURCES:
+            lines.append("No sources configured.")
+
+        session.add_orbit_message("\n".join(lines).rstrip())
+
     def show_doctor(
         self,
         session: SessionScreen,
     ) -> None:
-        """Display basic diagnostics."""
+        """Display local runtime and hardware diagnostics."""
 
-        session.add_orbit_message(
-            "ORBIT Diagnostics\n\n"
-            "Python         OK\n"
-            "Textual        OK\n"
-            "CLI            OK\n"
-            "Source engine  OK\n"
-            "Database       READY\n"
-            "AI provider    NOT CONFIGURED"
-        )
+        lines = ["ORBIT Diagnostics", ""]
+
+        for result in run_diagnostics():
+            lines.append(
+                f"{result.component:<12} {result.status:<12} {result.detail}"
+            )
+
+        session.add_orbit_message("\n".join(lines))
 
     def clear_session(
         self,
