@@ -1,7 +1,8 @@
-"""Conversation transcript widget for ORBIT."""
+"""Conversation transcript widget for the ORBIT terminal UI."""
 
 from textual.app import ComposeResult
 from textual.containers import Vertical
+from textual.events import Click
 from textual.widgets import Static
 
 from ..renderers.markdown import render_markdown
@@ -98,6 +99,16 @@ class Transcript(Vertical):
                 classes="welcome-body",
             )
 
+    def on_click(self, event: Click) -> None:
+        """Close the command palette when the workspace is clicked."""
+
+        session = self.screen.query_one("#session")
+        palette = session.query_one("#command-palette")
+
+        if palette.has_class("visible"):
+            palette.hide()
+            session.query_one("#prompt").focus_input()
+
     def add_user_message(
         self,
         content: str,
@@ -142,17 +153,29 @@ class Transcript(Vertical):
 
         self.scroll_end()
 
-    def add_orbit_stream(self, content: str) -> Static:
+    def add_orbit_stream(
+        self,
+        content: str,
+    ) -> Static:
         """Mount an ORBIT response body that can update incrementally."""
 
-        body = Static(render_markdown(content), classes="message-body")
+        body = Static(
+            render_markdown(content),
+            classes="message-body",
+        )
+
         message = Vertical(
-            Static("ORBIT", classes="message-label"),
+            Static(
+                "ORBIT",
+                classes="message-label",
+            ),
             body,
             classes="message message-orbit",
         )
+
         self.mount(message)
         self.scroll_end()
+
         return body
 
     def add_system_message(

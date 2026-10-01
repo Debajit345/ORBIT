@@ -26,7 +26,7 @@ class OrbitApp(App):
 
     TITLE = "ORBIT"
     SUB_TITLE = "Open Research & Broadcast Intelligence Terminal"
-
+    ENABLE_COMMAND_PALETTE = False
     CSS = CSS
 
     BINDINGS = [

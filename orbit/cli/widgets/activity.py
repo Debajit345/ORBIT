@@ -1,4 +1,4 @@
-"""Activity display widget for ORBIT."""
+"""Activity display widget for the ORBIT terminal UI."""
 
 from textual.app import ComposeResult
 from textual.containers import Vertical
@@ -6,7 +6,7 @@ from textual.widgets import Static
 
 
 class Activity(Vertical):
-    """Display current and recent ORBIT activities."""
+    """Display one transient ORBIT activity at a time."""
 
     DEFAULT_CSS = """
     Activity {
@@ -15,8 +15,9 @@ class Activity(Vertical):
     }
 
     Activity .activity-item {
-        height: auto;
-        margin: 0 0 1 0;
+        height: 1;
+        margin: 0;
+        opacity: 1;
         color: #858585;
     }
 
@@ -46,10 +47,14 @@ class Activity(Vertical):
         "✽",
     )
 
+    TRANSIENT_DURATION = 1.6
+    FADE_DURATION = 0.35
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
         self._spinner_index = 0
+        self._generation = 0
 
     def compose(self) -> ComposeResult:
         """Start with an empty activity area."""
@@ -65,7 +70,7 @@ class Activity(Vertical):
         )
 
     def _advance_spinner(self) -> None:
-        """Advance active activity indicators."""
+        """Advance the active activity indicator."""
 
         self._spinner_index = (
             self._spinner_index + 1
@@ -99,7 +104,13 @@ class Activity(Vertical):
         text: str,
         level: str = "active",
     ) -> None:
-        """Add an activity item."""
+        """
+        Show one activity message.
+
+        Any previous activity is replaced.
+        Success, warning, and error messages automatically
+        fade away after a short delay.
+        """
 
         valid_levels = {
             "active",
@@ -110,6 +121,13 @@ class Activity(Vertical):
 
         if level not in valid_levels:
             level = "active"
+
+        # Invalidate any previous scheduled dismissal.
+        self._generation += 1
+        generation = self._generation
+
+        # Never stack activity messages.
+        self._remove_all_items()
 
         if level == "active":
             prefix = self.SPINNER_FRAMES[
@@ -130,11 +148,62 @@ class Activity(Vertical):
         item._orbit_activity_text = text
 
         self.mount(item)
-
         self.scroll_end()
 
+        # Terminal states disappear automatically.
+        if level != "active":
+            self.set_timer(
+                self.TRANSIENT_DURATION,
+                lambda: self._fade_current(
+                    item,
+                    generation,
+                ),
+            )
+
+    def _fade_current(
+        self,
+        item: Static,
+        generation: int,
+    ) -> None:
+        """Fade the current transient activity out."""
+
+        if generation != self._generation:
+            return
+
+        if item not in self.children:
+            return
+
+        item.styles.animate(
+            "opacity",
+            0.0,
+            duration=self.FADE_DURATION,
+            on_complete=lambda: self._remove_if_current(
+                item,
+                generation,
+            ),
+        )
+
+    def _remove_if_current(
+        self,
+        item: Static,
+        generation: int,
+    ) -> None:
+        """Remove the item if it is still the current activity."""
+
+        if generation != self._generation:
+            return
+
+        if item in self.children:
+            item.remove()
+
+    def _remove_all_items(self) -> None:
+        """Remove every visible activity item."""
+
+        for child in list(self.children):
+            child.remove()
+
     def clear_active(self) -> None:
-        """Remove all currently active activities."""
+        """Remove the current active activity."""
 
         for child in list(
             self.query(".activity-active")
@@ -144,5 +213,5 @@ class Activity(Vertical):
     def clear(self) -> None:
         """Remove all activity items."""
 
-        for child in list(self.children):
-            child.remove()
+        self._generation += 1
+        self._remove_all_items()

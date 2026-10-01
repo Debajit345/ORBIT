@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "clients/terminal",
+    "crates/orbit-runtime",
+    "crates/orbit-index",
+    "crates/orbit-search",
+    "crates/orbit-native",
+]

@@ -1,0 +1,14 @@
+[package]
+name = "orbit-terminal"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "orbit"
+path = "src/main.rs"
+
+[dependencies]
+orbit-runtime = { path = "../../crates/orbit-runtime" }
+orbit-index = { path = "../../crates/orbit-index" }
+orbit-search = { path = "../../crates/orbit-search" }
+orbit-native = { path = "../../crates/orbit-native" }
